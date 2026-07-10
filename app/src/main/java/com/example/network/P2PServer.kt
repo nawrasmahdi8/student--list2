@@ -2,12 +2,27 @@ package com.example.network
 
 import android.content.Context
 import com.example.ui.RegistryViewModel
-import com.example.utils.DataArchiver
 import fi.iki.elonen.NanoHTTPD
+import java.io.File
+import java.io.FileInputStream
 
-class P2PServer(port: Int, private val context: Context, private val viewModel: RegistryViewModel, private val mode: DataTransferMode) : NanoHTTPD(port) {
+class P2PServer(
+    port: Int,
+    private val context: Context,
+    private val viewModel: RegistryViewModel,
+    private val mode: DataTransferMode,
+    private val zipFile: File
+) : NanoHTTPD(port) {
     override fun serve(session: IHTTPSession): Response {
-        val file = DataArchiver.zipData(context, mode, viewModel)
-        return newChunkedResponse(Response.Status.OK, "application/zip", file.inputStream())
+        if (!zipFile.exists()) {
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Zip file not found")
+        }
+        val fis = FileInputStream(zipFile)
+        return newFixedLengthResponse(
+            Response.Status.OK,
+            "application/zip",
+            fis,
+            zipFile.length()
+        )
     }
 }

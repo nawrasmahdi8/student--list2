@@ -4,9 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ConnectionData(
-    val ipAddress: String,
+    val version: Int = 2,
+    val ip: String,
     val port: Int,
-    val scope: TransferScope
+    val mode: String,
+    val checksum: String? = null
 )
 
 enum class TransferScope {

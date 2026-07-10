@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.example.data.AppDatabase
 import com.example.data.AppConfigEntity
 import com.example.data.StudentEntity
@@ -702,6 +703,7 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             var imported = 0
             var skipped = 0
+            val newConflicts = mutableListOf<com.example.data.Conflict>()
             try {
                 val jsonString = inputStream.bufferedReader().use { it.readText() } ?: ""
                 val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
@@ -709,20 +711,30 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
                 val jsonAdapter = moshi.adapter<List<StudentEntity>>(listType)
                 val records: List<StudentEntity>? = jsonAdapter.fromJson(jsonString)
                 
-                val existingStudents = repository.getAllStudents()
-                val normalizedNameMap = existingStudents.associateBy { it.normalizedName }.toMutableMap()
-				
-                records?.forEach { rec ->
-                    val dupName = normalizedNameMap[rec.normalizedName]
-                    if (dupName != null) {
-                        val conflict = com.example.data.Conflict(rec, dupName)
-                        _pendingConflicts.value = _pendingConflicts.value + conflict
-                    } else {
-                        repository.insertStudent(rec)
-                        normalizedNameMap[rec.normalizedName] = rec
-                        imported++
+                val db = AppDatabase.getDatabase(getApplication())
+                db.withTransaction {
+                    val existingStudents = repository.getAllStudents()
+                    val normalizedNameMap = existingStudents.associateBy { it.normalizedName }.toMutableMap()
+                    
+                    records?.forEach { rec ->
+                        kotlinx.coroutines.ensureActive()
+                        val dupName = normalizedNameMap[rec.normalizedName]
+                        if (dupName != null) {
+                            val conflict = com.example.data.Conflict(rec, dupName)
+                            newConflicts.add(conflict)
+                            skipped++
+                        } else {
+                            repository.insertStudent(rec)
+                            normalizedNameMap[rec.normalizedName] = rec
+                            imported++
+                        }
                     }
                 }
+                
+                if (newConflicts.isNotEmpty()) {
+                    _pendingConflicts.value = _pendingConflicts.value + newConflicts
+                }
+                
                 withContext(Dispatchers.Main) {
                     onComplete(imported, skipped, null)
                 }
@@ -881,46 +893,113 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
 
     fun downloadAndMerge(context: Context, jsonString: String, onProgress: (Float) -> Unit, onComplete: (Boolean, String?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val connectionData = Json.decodeFromString<ConnectionData>(jsonString)
-                val url = "http://${connectionData.ipAddress}:${connectionData.port}/"
-                val client = OkHttpClient()
-                val request = Request.Builder().url(url).build()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        withContext(Dispatchers.Main) { onComplete(false, "Download failed: ${response.code}") }
-                        return@launch
-                    }
-                    val body = response.body
-                    if (body == null) {
-                        withContext(Dispatchers.Main) { onComplete(false, "No body") }
-                        return@launch
-                    }
-                    val totalBytes = body.contentLength()
-                    var bytesRead = 0L
-                    val buffer = ByteArray(8192)
-                    var read: Int
-                    val zipFile = File(context.cacheDir, "downloaded.zip")
-                    
-                    body.byteStream().use { input ->
-                        FileOutputStream(zipFile).use { output ->
-                            while (input.read(buffer).also { read = it } != -1) {
-                                output.write(buffer, 0, read)
-                                bytesRead += read
-                                if (totalBytes > 0) {
-                                    val progress = bytesRead.toFloat() / totalBytes
-                                    withContext(Dispatchers.Main) { onProgress(progress) }
+            val connectionData = try {
+                Json.decodeFromString<ConnectionData>(jsonString)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onComplete(false, "Invalid QR Data") }
+                return@launch
+            }
+            
+            // Check storage space (e.g., require at least 100MB free)
+            val stat = android.os.StatFs(context.cacheDir.path)
+            val freeBytes = stat.availableBlocksLong * stat.blockSizeLong
+            if (freeBytes < 100 * 1024 * 1024) {
+                withContext(Dispatchers.Main) { onComplete(false, "Not enough free storage space") }
+                return@launch
+            }
+
+            val url = "http://${connectionData.ip}:${connectionData.port}/"
+            val client = OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
+                .writeTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
+                .build()
+            val request = Request.Builder().url(url).build()
+            val zipFile = File(context.cacheDir, "downloaded.zip")
+            
+            var attempt = 0
+            val maxAttempts = 3
+            var success = false
+            var lastError: String? = null
+
+            while (attempt < maxAttempts && !success) {
+                attempt++
+                try {
+                    kotlinx.coroutines.ensureActive()
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            lastError = "Download failed: ${response.code}"
+                            return@use
+                        }
+                        val body = response.body
+                        if (body == null) {
+                            lastError = "No body"
+                            return@use
+                        }
+                        val totalBytes = body.contentLength()
+                        var bytesRead = 0L
+                        val buffer = ByteArray(8192)
+                        var read: Int
+
+                        body.byteStream().use { input ->
+                            FileOutputStream(zipFile).use { output ->
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    kotlinx.coroutines.ensureActive()
+                                    output.write(buffer, 0, read)
+                                    bytesRead += read
+                                    if (totalBytes > 0) {
+                                        val progress = bytesRead.toFloat() / totalBytes
+                                        withContext(Dispatchers.Main) { onProgress(progress) }
+                                    }
                                 }
                             }
                         }
+                        success = true
                     }
-                    com.example.utils.DataUnarchiver.unzipAndMerge(context, zipFile, this@RegistryViewModel) { success, error ->
-                        viewModelScope.launch(Dispatchers.Main) {
-                            onComplete(success, error)
+                } catch (e: Exception) {
+                    lastError = e.message ?: "Unknown error"
+                    kotlinx.coroutines.delay(1000)
+                }
+            }
+
+            if (!success) {
+                withContext(Dispatchers.Main) { onComplete(false, lastError) }
+                return@launch
+            }
+
+            // Verify checksum if available
+            if (connectionData.checksum != null) {
+                try {
+                    val md = java.security.MessageDigest.getInstance("SHA-256")
+                    zipFile.inputStream().use { input ->
+                        val buffer = ByteArray(8192)
+                        var read: Int
+                        while (input.read(buffer).also { read = it } != -1) {
+                            md.update(buffer, 0, read)
                         }
+                    }
+                    val downloadedChecksum = md.digest().joinToString("") { "%02x".format(it) }
+                    if (downloadedChecksum != connectionData.checksum) {
+                        zipFile.delete()
+                        withContext(Dispatchers.Main) { onComplete(false, "Checksum mismatch! Download corrupted.") }
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    zipFile.delete()
+                    withContext(Dispatchers.Main) { onComplete(false, "Failed to verify checksum: ${e.message}") }
+                    return@launch
+                }
+            }
+
+            try {
+                com.example.utils.DataUnarchiver.unzipAndMerge(context, zipFile, this@RegistryViewModel) { mergeSuccess, error ->
+                    zipFile.delete()
+                    viewModelScope.launch(Dispatchers.Main) {
+                        onComplete(mergeSuccess, error)
                     }
                 }
             } catch (e: Exception) {
+                zipFile.delete()
                 withContext(Dispatchers.Main) { onComplete(false, e.message) }
             }
         }
