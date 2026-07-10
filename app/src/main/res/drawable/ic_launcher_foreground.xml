@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Subtle elegant drop shadow under the main foreground elements -->
+    <path
+        android:fillColor="#30000000"
+        android:pathData="M34,44 h36 v28 c0,4 -4,8 -8,8 h-20 c-4,0 -8,-4 -8,-8 z" />
+
+    <!-- Stylized registration ledger folder / document back page -->
+    <path
+        android:pathData="M30,32h38v42c0,5 -5,10 -10,10h-23c-3,0 -5,-2 -5,-5z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="30"
+                android:startY="32"
+                android:endX="68"
+                android:endY="84"
+                android:type="linear">
+                <item
+                    android:color="#0D9488"
+                    android:offset="0.0" />
+                <item
+                    android:color="#0F766E"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Overlapping sheets (student files / records list) -->
+    <path
+        android:pathData="M38,26h32v40c0,4 -4,8 -8,8h-24z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="38"
+                android:startY="26"
+                android:endX="70"
+                android:endY="74"
+                android:type="linear">
+                <item
+                    android:color="#FFFFFF"
+                    android:offset="0.0" />
+                <item
+                    android:color="#E2E8F0"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Realistic horizontal lines symbolizing registry rows -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M44,36h18v3H44z M44,43h14v3H44z M44,50h16v3H44z" />
+
+    <!-- A stunning golden official seal of verification -->
+    <path
+        android:pathData="M66,54m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="42"
+                android:endX="78"
+                android:endY="66"
+                android:type="linear">
+                <item
+                    android:color="#FBBF24"
+                    android:offset="0.0" />
+                <item
+                    android:color="#D97706"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Star symbol inside the gold seal -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,48 l2,4.5 l5,0.5 l-3.5,3.5 l1,5 l-4.5,-2.5 l-4.5,2.5 l1,-5 l-3.5,-3.5 l5,-0.5 z" />
+
+    <!-- Stylized search lens/ring representing fast indexing overlay -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M46,62m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="35"
+                android:startY="51"
+                android:endX="57"
+                android:endY="73"
+                android:type="linear">
+                <item
+                    android:color="#2DD4BF"
+                    android:offset="0.0" />
+                <item
+                    android:color="#14B8A6"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Handle of the search lens with 3D gradient -->
+    <path
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,70l8,8">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="54"
+                android:startY="70"
+                android:endX="62"
+                android:endY="78"
+                android:type="linear">
+                <item
+                    android:color="#2DD4BF"
+                    android:offset="0.0" />
+                <item
+                    android:color="#0D9488"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

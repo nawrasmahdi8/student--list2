@@ -1,0 +1,6 @@
+{
+  "name": "Electronic Registry Index",
+  "description": "An offline-first administrative tool for archiving student records, optimized for ultra-fast data entry and strict validation rules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

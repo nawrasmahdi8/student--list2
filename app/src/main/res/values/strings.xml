@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">فهرست القيود</string>
+    <string name="welcome_to_registry">اهلا بكم في فهرست القيود الالكترونية</string>
+    <string name="guest_login">دخول الضيف</string>
+    <string name="user_login">تسجيل الدخول (مدير / موظف)</string>
+    <string name="created_by">تم الانشاء من قبل الاستاذ نورس مهدي رحيم / ماجستير تربية رياضية</string>
+    <string name="edit">تعديل</string>
+    <string name="registration_id">قيد: %1$s</string>
+    <string name="page_number">صفحة: %1$s</string>
+    <string name="ok">موافق</string>
+    <string name="cancel">إلغاء</string>
+    <string name="save_changes">حفظ التغييرات</string>
+    <string name="delete_record">حذف سجل</string>
+    <string name="update_photo">تحديث الصورة</string>
+    <string name="total_records">إجمالي</string>
+    <string name="duplicate_records">تكرارات</string>
+    <string name="review_records">مراجعة</string>
+    <string name="sort_alphabetical">أبجدي (أ - ي)</string>
+    <string name="sort_by_registry">رقم القيد والأقدمية</string>
+    <string name="original_record">السجل الأصلي المكتشف:</string>
+    <string name="duplicate_records_found">السجلات المتطابقة مكررة:</string>
+    <string name="real_duplicate">🔴 مكرر حقيقي</string>
+    <string name="not_duplicate">🟢 غير مكرر</string>
+    <string name="admin_login">تسجيل دخول المدير</string>
+    <string name="otp_code">رمز OTP</string>
+    <string name="login">دخول</string>
+    <string name="login_as_guest">الدخول كضيف</string>
+</resources>
