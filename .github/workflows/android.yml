@@ -1,0 +1,88 @@
+name: Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Verify APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Gradle Cache and Optimizations
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Run Lint
+        run: ./gradlew lint --stacktrace
+        continue-on-error: true
+
+      - name: Run Unit Tests
+        run: ./gradlew test --stacktrace
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace --parallel --build-cache -Porg.gradle.caching=true -Porg.gradle.parallel=true -Porg.gradle.configureondemand=true
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace --parallel --build-cache -Porg.gradle.caching=true -Porg.gradle.parallel=true -Porg.gradle.configureondemand=true
+        continue-on-error: true
+
+      - name: Print Build Report
+        run: |
+          echo "==== Build Report ===="
+          echo "Gradle Version:"
+          ./gradlew --version | grep Gradle
+          echo "Kotlin Version:"
+          ./gradlew --version | grep Kotlin || echo "Kotlin version embedded in Gradle"
+          echo "Java Version:"
+          java -version 2>&1 | head -n 1
+          echo "Build Variant: Debug (and Release if available)"
+          echo "==== APK Size ===="
+          ls -lh app/build/outputs/apk/debug/*.apk || echo "Debug APK not found"
+          ls -lh app/build/outputs/apk/release/*.apk || echo "Release APK not found"
+          echo "Build Duration is handled by GitHub Actions step metrics."
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudentList-Debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 90
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: StudentList-Release
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Upload Build Logs on Failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: |
+            ~/.gradle/daemon/**/*.log
+            app/build/reports/
+          retention-days: 14
