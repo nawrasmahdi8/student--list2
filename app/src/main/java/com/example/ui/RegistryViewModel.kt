@@ -7,6 +7,8 @@ import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import com.example.data.AppDatabase
 import com.example.data.AppConfigEntity
 import com.example.data.StudentEntity
@@ -717,7 +719,7 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
                     val normalizedNameMap = existingStudents.associateBy { it.normalizedName }.toMutableMap()
                     
                     records?.forEach { rec ->
-                        kotlinx.coroutines.ensureActive()
+                        currentCoroutineContext().ensureActive()
                         val dupName = normalizedNameMap[rec.normalizedName]
                         if (dupName != null) {
                             val conflict = com.example.data.Conflict(rec, dupName)
@@ -925,7 +927,7 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
             while (attempt < maxAttempts && !success) {
                 attempt++
                 try {
-                    kotlinx.coroutines.ensureActive()
+                    currentCoroutineContext().ensureActive()
                     client.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {
                             lastError = "Download failed: ${response.code}"
@@ -944,7 +946,7 @@ class RegistryViewModel(application: Application) : AndroidViewModel(application
                         body.byteStream().use { input ->
                             FileOutputStream(zipFile).use { output ->
                                 while (input.read(buffer).also { read = it } != -1) {
-                                    kotlinx.coroutines.ensureActive()
+                                    currentCoroutineContext().ensureActive()
                                     output.write(buffer, 0, read)
                                     bytesRead += read
                                     if (totalBytes > 0) {
